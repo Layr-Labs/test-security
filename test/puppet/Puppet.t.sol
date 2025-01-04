@@ -100,7 +100,8 @@ contract PuppetChallenge is Test {
             address(lendingPool)
         );
 
-        // Approve tokens for exploiter
+        // Approve tokens for both Uniswap and exploiter
+        token.approve(address(uniswapV1Exchange), type(uint256).max);
         token.approve(address(exploiter), type(uint256).max);
 
         // Calculate amount to dump to manipulate price
