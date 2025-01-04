@@ -59,7 +59,7 @@ contract ClimberVault is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     // Allows trusted sweeper account to retrieve any tokens
-    function sweepFunds(address token) external onlySweeper {
+    function sweepFunds(address token) external virtual onlySweeper {
         SafeTransferLib.safeTransfer(token, _sweeper, IERC20(token).balanceOf(address(this)));
     }
 

