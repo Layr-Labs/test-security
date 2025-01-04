@@ -125,9 +125,10 @@ contract FreeRiderChallenge is Test {
      */
     function test_freeRider() public checkSolvedByPlayer {
         // Deploy exploiter contract
+        vm.startPrank(player);
         FreeRiderExploiter exploiter = new FreeRiderExploiter(
-            address(marketplace),
-            address(recoveryManager),
+            payable(address(marketplace)),
+            payable(address(recoveryManager)),
             address(nft),
             address(weth),
             address(uniswapPair)
@@ -135,6 +136,7 @@ contract FreeRiderChallenge is Test {
 
         // Execute exploit
         exploiter.exploit();
+        vm.stopPrank();
     }
 
     /**
