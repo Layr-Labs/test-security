@@ -6,6 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {Merkle} from "murky/Merkle.sol";
 import {WETH} from "solmate/tokens/WETH.sol";
 import {TheRewarderDistributor, IERC20, Distribution, Claim} from "../../src/the-rewarder/TheRewarderDistributor.sol";
+import {TheRewarderExploiter} from "../../src/the-rewarder/TheRewarderExploiter.sol";
 import {DamnValuableToken} from "../../src/DamnValuableToken.sol";
 
 contract TheRewarderChallenge is Test {
